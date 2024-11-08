@@ -9,7 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendSignedTransaction = exports.sendAndConfirmRawTransactionEx = void 0;
+exports.sendAndConfirmRawTransactionEx = sendAndConfirmRawTransactionEx;
+exports.sendSignedTransaction = sendSignedTransaction;
 function sendAndConfirmRawTransactionEx(connection, rawTransaction, options) {
     return __awaiter(this, void 0, void 0, function* () {
         let txid;
@@ -34,9 +35,8 @@ function sendAndConfirmRawTransactionEx(connection, rawTransaction, options) {
         }
     });
 }
-exports.sendAndConfirmRawTransactionEx = sendAndConfirmRawTransactionEx;
-function sendSignedTransaction({ signedTransaction, connection, }) {
-    return __awaiter(this, void 0, void 0, function* () {
+function sendSignedTransaction(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ signedTransaction, connection, }) {
         const rawTransaction = signedTransaction.serialize();
         let slot = 0;
         const result = yield sendAndConfirmRawTransactionEx(connection, rawTransaction, {
@@ -46,11 +46,13 @@ function sendSignedTransaction({ signedTransaction, connection, }) {
         if (result.err)
             return { err: result.err };
         const { ok: txid } = result;
-        const confirmation = yield connection.getConfirmedTransaction(txid, 'confirmed');
+        const confirmation = yield connection.getTransaction(txid, {
+            commitment: 'confirmed',
+            maxSupportedTransactionVersion: 0,
+        });
         if (confirmation) {
             slot = confirmation.slot;
         }
         return { txid, slot };
     });
 }
-exports.sendSignedTransaction = sendSignedTransaction;

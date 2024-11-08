@@ -1,6 +1,5 @@
-/// <reference types="node" />
 import { ConfirmOptions, Connection, Transaction, TransactionError, TransactionSignature } from '@solana/web3.js';
-export declare type SendAndConfirmError = {
+export type SendAndConfirmError = {
     type: 'tx-error';
     inner: TransactionError;
     txid: TransactionSignature;
@@ -13,7 +12,7 @@ export declare type SendAndConfirmError = {
     inner: unknown;
     txid?: TransactionSignature;
 };
-export declare type SendSignedTransactionResult = {
+export type SendSignedTransactionResult = {
     txid: string;
     slot: number;
     err?: undefined;
