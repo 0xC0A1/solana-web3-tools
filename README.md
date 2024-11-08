@@ -5,13 +5,13 @@
 ## Installation
 
 ```bash
-$ yarn add @holaplex/solana-web3-tools
+$ yarn add @kevinrodriguez-io/solana-web3-tools
 ```
 
 ## Usage
 
 ```ts
-import { SmartInstructionSender } from '@holaplex/solana-web3-tools';
+import { SmartInstructionSender } from '@kevinrodriguez-io/solana-web3-tools';
 
 const someMethod = async (
     instructions: TransactionInstruction[][],

@@ -68,10 +68,10 @@ export async function sendSignedTransaction({
   if (result.err) return { err: result.err };
 
   const { ok: txid } = result;
-  const confirmation = await connection.getConfirmedTransaction(
-    txid,
-    'confirmed',
-  );
+  const confirmation = await connection.getTransaction(txid, {
+    commitment: 'confirmed',
+    maxSupportedTransactionVersion: 0,
+  });
 
   if (confirmation) {
     slot = confirmation.slot;
