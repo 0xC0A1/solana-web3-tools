@@ -9,10 +9,10 @@ import { sendSignedTransaction } from './tools/connectionTools';
 import { getSlotAndCurrentBlockHash } from './tools';
 import { InstructionSet } from './types';
 
-export type WalletSigner = {
+export interface WalletSigner {
   publicKey: PublicKey | null;
   signAllTransactions: (transaction: Transaction[]) => Promise<Transaction[]>;
-};
+}
 
 /**
  * Callback for when a transaction is sent to the network correctly.
@@ -28,7 +28,7 @@ export type ReSignCb = (attempt: number, currentIndex: number) => void;
  * Callback for when a transaction fails to be sent after attempts.
  */
 export type FailureCb = (
-  error: Error | any,
+  error: Error | unknown,
   successfulItems: number,
   currentIndex: number,
   instructionSet: InstructionSet,
@@ -37,11 +37,11 @@ export type FailureCb = (
 /**
  * Configuration for the smart instruction sender.
  */
-export type SmartInstructionSenderConfiguration = {
+export interface SmartInstructionSenderConfiguration {
   maxSigningAttempts: number;
   abortOnFailure: boolean;
   commitment: Commitment;
-};
+}
 
 /**
  * Sends instruction sets as transactions to the Solana network, handling re-signing
@@ -68,13 +68,17 @@ export class SmartInstructionSender {
   /**
    * Creates a new SmartInstructionSender instance
    */
-  public static build = (wallet: WalletSigner, connection: Connection) =>
-    new SmartInstructionSender(wallet, connection);
+  public static build = (
+    wallet: WalletSigner,
+    connection: Connection,
+  ): SmartInstructionSender => new SmartInstructionSender(wallet, connection);
 
   /**
    * Sets the configuration
    */
-  public config = (config: SmartInstructionSenderConfiguration) => {
+  public config = (
+    config: SmartInstructionSenderConfiguration,
+  ): SmartInstructionSender => {
     this.configuration = config;
     return this;
   };
@@ -82,7 +86,9 @@ export class SmartInstructionSender {
   /**
    * Sets instruction sets to be processed
    */
-  public withInstructionSets = (instructionSets: InstructionSet[]) => {
+  public withInstructionSets = (
+    instructionSets: InstructionSet[],
+  ): SmartInstructionSender => {
     this.instructionSets = instructionSets;
     return this;
   };
@@ -90,7 +96,9 @@ export class SmartInstructionSender {
   /**
    * Sets progress callback
    */
-  public onProgress = (progressCallback: ProgressCb) => {
+  public onProgress = (
+    progressCallback: ProgressCb,
+  ): SmartInstructionSender => {
     this.onProgressCallback = progressCallback;
     return this;
   };
@@ -98,7 +106,7 @@ export class SmartInstructionSender {
   /**
    * Sets re-sign callback
    */
-  public onReSign = (reSignCallback: ReSignCb) => {
+  public onReSign = (reSignCallback: ReSignCb): SmartInstructionSender => {
     this.onReSignCallback = reSignCallback;
     return this;
   };
@@ -106,7 +114,7 @@ export class SmartInstructionSender {
   /**
    * Sets failure callback
    */
-  public onFailure = (onFailureCallback: FailureCb) => {
+  public onFailure = (onFailureCallback: FailureCb): SmartInstructionSender => {
     this.onFailureCallback = onFailureCallback;
     return this;
   };
@@ -119,7 +127,7 @@ export class SmartInstructionSender {
     index: number,
     blockhash: { blockhash: string; lastValidBlockHeight: number },
     attempt = 0,
-  ) => {
+  ): Promise<Transaction> => {
     this.onReSignCallback?.(attempt, index);
 
     const txsToRebuild = this.instructionSets!.slice(index).map(
@@ -146,7 +154,7 @@ export class SmartInstructionSender {
   /**
    * Sends instruction sets as transactions
    */
-  public send = async () => {
+  public send = async (): Promise<void> => {
     if (!this.wallet?.publicKey) throw new Error('WALLET_NOT_CONNECTED');
     if (!this.instructionSets?.length) throw new Error('NO_INSTRUCTION_SETS');
 
@@ -171,7 +179,7 @@ export class SmartInstructionSender {
     const signedTXs = await this.wallet.signAllTransactions(unsignedTXs);
     let successfulItems = 0;
 
-    const processTx = async (tx: Transaction, i: number) => {
+    const processTx = async (tx: Transaction, i: number): Promise<void> => {
       const result = await sendSignedTransaction({
         connection: this.connection!,
         signedTransaction: tx,
@@ -181,10 +189,10 @@ export class SmartInstructionSender {
         throw result.err;
       }
 
-      this.onProgressCallback?.(i, result.txid);
+      this.onProgressCallback?.(i, result.txid!);
       successfulItems++;
 
-      if (result.slot >= slot + 150) {
+      if (result.slot! >= slot + 150) {
         const nextTXs = signedTXs.slice(i + 1);
         if (nextTXs.length) {
           [slot, currentBlock] = await getSlotAndCurrentBlockHash(
@@ -210,8 +218,9 @@ export class SmartInstructionSender {
             retryNumber++;
             try {
               await processTx(tx, i);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
-              if (error.type === 'timeout') {
+              if (error === 'timeout') {
                 if (retryNumber >= this.configuration!.maxSigningAttempts) {
                   bail(new Error('MAX_RESIGN_ATTEMPTS_REACHED'));
                 }
@@ -222,8 +231,9 @@ export class SmartInstructionSender {
           },
           {
             retries: this.configuration.maxSigningAttempts,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onRetry: async (error: any, attempt: number) => {
-              if (error?.type === 'timeout') {
+              if (error === 'timeout') {
                 const slotResult = await this.connection!.getSlot(
                   this.configuration.commitment,
                 );

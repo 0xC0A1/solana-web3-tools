@@ -4,3 +4,8 @@ export interface InstructionSet {
   signers: Signer[];
   instructions: TransactionInstruction[];
 }
+
+export type SlotAndBlockHashTuple = [
+  number,
+  { blockhash: string; lastValidBlockHeight: number },
+];
